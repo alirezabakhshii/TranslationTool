@@ -1,59 +1,34 @@
-# Internal Translation Management Tool
+# Translation Management Tool
 
-A responsive React + TypeScript application for managing multilingual keyword translations through an internal dashboard and displaying them through a public translation view.
+A responsive internal translation management tool built with React and TypeScript.
 
-The application uses **React Context** as the single source of truth and persists the complete translation dataset in `localStorage`.
-
----
+The application provides a dashboard for managing translation keywords and a public view for consuming the same translation data.
 
 ## Features
 
 ### Management Dashboard
 
 * View all keywords and their translations
+* Dynamically render translation columns based on supported languages
 * Edit translations inline
 * Add new keywords
-* Add a translation for any available language when creating a keyword
-* Automatically create empty translation values for languages that were not provided
-* Reorder keywords using drag & drop
-* Desktop and mobile-friendly drag & drop interactions
-* Keyboard-accessible keyword reordering
-* Responsive layout:
-
-    * Table-based layout on desktop
-    * Card-based layout on mobile
-* Empty state when no keywords exist
+* Automatically create empty translations for languages without a provided value
+* Prevent duplicate keywords
+* Search keywords and translations
+* Delete keywords
+* Drag and drop keywords to change their order
+* Persist all changes to `localStorage`
+* Restore the latest dataset after page reload
+* Responsive desktop and mobile layouts
+* Empty states for empty datasets and search results
 
 ### Public View
 
-* Display keywords and their translations
+* Display keywords and translations in a readable format
 * Switch between available languages
-* Clearly indicate missing translations
+* Show an empty state when a translation is missing
 * Preserve the same keyword ordering as the dashboard
-* Responsive desktop/mobile layout
-* Uses the same shared state as the dashboard
-
-### Persistence
-
-* Complete translation dataset is stored in `localStorage`
-* Changes are persisted automatically after every state update
-* Data is restored when the application is reloaded
-* Invalid or missing stored data falls back to the initial dataset
-
-### Accessibility & UX
-
-* Semantic buttons, labels and form controls
-* Accessible drag handles
-* Keyboard drag & drop support
-* Visible keyboard focus states
-* Accessible modal dialog
-* Escape key support for closing the modal
-* Automatic focus on the keyword input when the modal opens
-* Validation feedback for invalid keyword input
-* Accessible labels for translation inputs
-* Screen-reader-friendly table caption and status messages
-
----
+* Use the same source of truth as the dashboard
 
 ## Tech Stack
 
@@ -63,12 +38,8 @@ The application uses **React Context** as the single source of truth and persist
 * React Hooks
 * React Router
 * Tailwind CSS
-* `@dnd-kit/core`
-* `@dnd-kit/sortable`
-* `@dnd-kit/utilities`
-* Browser `localStorage`
-
----
+* Browser Local Storage
+* `dnd-kit` for drag and drop interactions
 
 ## Project Structure
 
@@ -77,19 +48,20 @@ src/
 ├── components/
 │   ├── DragHandleIcon/
 │   │   └── DragHandleIcon.tsx
+│   │
 │   └── LanguageSelector/
 │       └── LanguageSelector.tsx
 │
 ├── context/
 │   └── TranslationContext.tsx
 │
-├── Translations/
-│   └── initialTranslations.ts
+├── data/
+│   └── initialData.ts
 │
 ├── pages/
 │   ├── Dashboard/
-│   │   ├── AddKeywordModal.tsx
 │   │   ├── Dashboard.tsx
+│   │   ├── AddKeywordModal.tsx
 │   │   ├── SortableMobileCard.tsx
 │   │   └── SortableTableRow.tsx
 │   │
@@ -97,81 +69,21 @@ src/
 │       └── PublicView.tsx
 │
 ├── App.tsx
-└── index.tsx
+├── main.tsx
+└── index.css
 ```
 
-The application separates:
+The project separates the application into three main concerns:
 
-* **State management** → `TranslationContext`
-* **Initial data/model** → `data/initialData.ts`
-* **Page-level logic** → `Dashboard`, `PublicView`
-* **Reusable UI** → `components`
-* **Drag & drop presentation** → sortable row/card components
+* **State & business logic** — `TranslationContext`
+* **Initial/static data** — `initialData`
+* **Presentation** — pages and reusable UI components
 
----
+This keeps the UI components focused on presentation while the shared context handles application state and mutations.
 
-# Setup
+## Data Model
 
-## Requirements
-
-* Node.js 18+
-* npm
-
-## Installation
-
-Clone the repository and install dependencies:
-
-```bash
-npm install
-```
-
-## Start the development server
-
-```bash
-npm start
-```
-
-The application will be available at:
-
-```text
-http://localhost:3000
-```
-
-## Available routes
-
-### Dashboard
-
-```text
-/dashboard
-```
-
-Used for managing keywords and translations.
-
-### Public View
-
-```text
-/public
-```
-
-Used for viewing the translations as an end user.
-
----
-
-## Production Build
-
-To create a production build:
-
-```bash
-npm run build
-```
-
-The generated production files will be placed in the `build/` directory.
-
----
-
-# Data Model
-
-The application uses the following data structure:
+The application uses the following structure:
 
 ```ts
 interface TranslationKeyword {
@@ -200,489 +112,323 @@ const data: TranslationData = {
         de: "Willkommen",
       },
     },
+    {
+      id: "login",
+      translations: {
+        en: "Login",
+        fa: "ورود",
+        de: "Anmelden",
+      },
+    },
   ],
 };
 ```
 
-The `languages` array defines the supported languages.
+### Why this structure?
 
-The `keywords` array defines both the available keywords and their display order.
+Each keyword has an identifier, while translations are stored in a `Record` keyed by language code.
 
-Each keyword contains a `translations` object where the keys are language codes.
+This makes translation access direct:
 
----
+```ts
+keyword.translations[language]
+```
 
-# Persistence
+It also keeps the structure flexible when supporting multiple languages.
 
-The application stores the complete `TranslationData` object in `localStorage`.
+Adding a new language can be handled by adding its language code to the `languages` array. The UI dynamically generates the corresponding translation column and input fields.
 
-The storage key is:
+The keyword array represents the ordering used by both the dashboard and public view.
+
+## State Management
+
+React Context is used as the single source of truth for translation data.
+
+The context exposes operations such as:
+
+```ts
+updateTranslation()
+addKeyword()
+deleteKeyword()
+reorderKeywords()
+```
+
+Both the Dashboard and Public View consume the same context.
+
+This prevents having separate copies of the translation dataset and keeps both views synchronized automatically.
+
+## Persistence
+
+The complete translation dataset is stored in `localStorage` as JSON.
+
+Storage key:
 
 ```text
 translation-manager-data
 ```
 
-Whenever the Context state changes, the complete dataset is serialized and stored:
+Whenever the application state changes, the updated dataset is persisted:
 
 ```ts
-localStorage.setItem(
-  STORAGE_KEY,
-  JSON.stringify(data)
-);
+useEffect(() => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(data)
+  );
+}, [data]);
 ```
 
-On application startup, the stored dataset is restored.
+When the application starts, it attempts to restore the previously saved dataset.
 
-If there is no stored data, the application uses the initial dataset.
+If the storage entry does not exist or contains invalid JSON, the application safely falls back to the initial dataset.
 
-If the stored value contains invalid JSON, the application falls back to the initial dataset rather than crashing.
+## Adding Keywords
 
-### Reset local data
+When a new keyword is created:
 
-To reset the application to its initial state, run the following in the browser console:
-
-```js
-localStorage.removeItem("translation-manager-data");
-```
-
-Then reload the page.
-
----
-
-# Assumptions
-
-The implementation makes the following assumptions:
-
-### 1. Keywords have unique IDs
-
-The keyword ID is treated as a stable unique identifier.
+1. The keyword is validated.
+2. Duplicate keywords are rejected.
+3. Translation fields are generated dynamically for all supported languages.
+4. Missing translations are stored as empty strings.
+5. The keyword is added to the dataset.
+6. The updated dataset is automatically persisted.
 
 For example:
 
 ```text
-welcome
+Keyword: settings
+EN: Settings
+FA: تنظیمات
+DE:
+```
+
+results in:
+
+```ts
+{
+  id: "settings",
+  translations: {
+    en: "Settings",
+    fa: "تنظیمات",
+    de: "",
+  },
+}
+```
+
+## Search & Filtering
+
+The dashboard includes keyword search functionality.
+
+Search matches against:
+
+* Keyword identifiers
+* Translation values across all supported languages
+
+For example, searching for:
+
+```text
+ورود
+```
+
+can find the keyword:
+
+```text
 login
-settings
 ```
 
-Two keywords with the same ID are not allowed.
+because its Persian translation is `ورود`.
 
-The Add Keyword flow also performs a case-insensitive duplicate check.
+Filtering only affects the displayed results. The underlying dataset and ordering remain unchanged.
 
----
+## Deleting Keywords
 
-### 2. Language codes are unique
+Keywords can be deleted directly from the dashboard.
 
-Each language appears only once in the `languages` array.
+Deletion is handled through the shared `TranslationContext`, ensuring that the change is reflected across the application and persisted to `localStorage`.
 
-For example:
+## Drag & Drop Ordering
 
-```ts
-["en", "fa", "de"]
-```
+Keyword ordering is handled using `dnd-kit`.
 
-rather than:
+The implementation supports:
 
-```ts
-["en", "fa", "en"]
-```
+* Mouse interaction
+* Touch interaction
+* Keyboard-based interaction
+* Smooth sortable transitions
 
----
+When a keyword is dropped onto another keyword, the shared dataset is reordered.
 
-### 3. Languages are predefined
+Because the complete dataset is persisted whenever state changes, the new ordering is also preserved after page reload.
 
-The assignment requires adding keywords and translations, but does not require adding/removing languages through the UI.
+The same ordering is consumed by the Public View.
 
-Therefore, the available languages are currently defined by the dataset.
+## Responsive Design
 
-Adding another language to the dataset automatically causes it to appear in the dashboard and public view.
+The dashboard uses two responsive presentation patterns.
 
----
+### Desktop
 
-### 4. Missing translations are valid
-
-A keyword does not necessarily have a translation for every language.
-
-For example:
-
-```ts
-{
-  id: "hello",
-  translations: {
-    en: "Hello",
-    fa: "",
-    de: "Hallo"
-  }
-}
-```
-
-The public view displays a clear empty state for the missing translation instead of showing an undefined value.
-
----
-
-### 5. localStorage is sufficient for this assignment
-
-The application is designed as a client-side technical assignment, so a backend/database is intentionally not included.
-
-`localStorage` provides persistence across browser reloads without introducing unnecessary infrastructure.
-
----
-
-### 6. Keyword ordering is meaningful
-
-The order of the `keywords` array represents the canonical display order.
-
-Both the dashboard and public view consume this same array, which guarantees that the public view reflects the order configured in the dashboard.
-
----
-
-# Drag & Drop
-
-The application uses `dnd-kit` instead of the native HTML5 Drag and Drop API.
-
-This was chosen because it provides better support for:
-
-* Touch devices
-* Pointer interactions
-* Keyboard interactions
-* Collision detection
-* Sortable lists
-* React-based state management
-
-Three sensors are configured:
+Translations are displayed in a table:
 
 ```text
-PointerSensor
-TouchSensor
-KeyboardSensor
+Keyword     EN          FA          DE
+-------------------------------------------
+welcome     Welcome     خوش آمدید   Willkommen
+login       Login       ورود        Anmelden
 ```
 
-The keyboard sensor uses `sortableKeyboardCoordinates` to support keyboard-based reordering.
+### Mobile
 
-The order is updated in the shared React Context, which automatically triggers persistence to `localStorage`.
+Each keyword is displayed as a separate card with translations stacked vertically.
 
----
+This avoids forcing users to horizontally scroll a wide translation table on small screens.
 
-# Architecture & State Management
+## Accessibility & UX
 
-React Context is used as the single source of truth.
+The application includes several accessibility and usability improvements:
 
-The main state is:
+* Semantic buttons and form controls
+* Accessible labels for inputs
+* ARIA labels for drag handles and actions
+* Keyboard-compatible drag and drop
+* Focus states for interactive elements
+* Accessible modal semantics
+* Escape key support for closing the add-keyword modal
+* Search result announcements using `aria-live`
+* Responsive layouts for desktop and mobile
+* Clear empty states and validation feedback
 
-```text
-TranslationProvider
-        │
-        ├── Dashboard
-        │     ├── Add Keyword
-        │     ├── Edit Translation
-        │     └── Reorder Keywords
-        │
-        └── Public View
-              └── Select Language
-```
+## Error Handling
 
-The Dashboard never maintains its own copy of the translation dataset.
+The application handles several invalid states gracefully:
 
-Instead, it calls Context actions such as:
+* Empty keyword validation
+* Duplicate keyword validation
+* Invalid or corrupted `localStorage`
+* Missing translations
+* Empty keyword dataset
+* Empty search results
 
-```ts
-updateTranslation(...)
-addKeyword(...)
-reorderKeywords(...)
-```
+Missing translations are represented by an empty string and displayed using an appropriate empty state in the Public View.
 
-The Public View reads the same `data` object.
+## Scaling Considerations
 
-This prevents the dashboard and public view from becoming out of sync.
+For the assignment, the complete dataset is kept in React Context and persisted in `localStorage`.
 
----
+For a much larger dataset containing thousands of keywords and many languages, the first potential bottlenecks would be:
 
-# Written Answers
+* Rendering a large number of rows
+* Updating and serializing the entire dataset on every change
+* React Context causing broad component re-renders
+* `localStorage` serialization and its synchronous browser API
 
-## 1. Why did you choose this data structure? How would you handle adding a new language later?
+At that scale, possible improvements would include:
 
-I chose a structure with a top-level `languages` array and a `keywords` array where every keyword contains a `translations` object keyed by language code.
+* Server-side persistence
+* API-based pagination
+* Virtualized lists
+* More granular state management
+* Debounced persistence
+* Splitting translation data into smaller independently managed units
+* Moving persistence away from `localStorage`
 
-For example:
+The current architecture keeps the data model, state management, and presentation concerns separated, making these future optimizations easier to introduce.
 
-```ts
-{
-  languages: ["en", "fa", "de"],
-  keywords: [
-    {
-      id: "welcome",
-      translations: {
-        en: "Welcome",
-        fa: "خوش آمدید",
-        de: "Willkommen"
-      }
-    }
-  ]
-}
-```
+## Running the Project
 
-There are two important reasons for this structure.
-
-First, the keyword order is naturally represented by the `keywords` array. Reordering keywords therefore only requires changing the array order.
-
-Second, using a `Record<string, string>` for translations makes the model flexible. The application does not need a separate property such as `english`, `german`, or `persian` for every language.
-
-If a new language is introduced, for example `fr`, the language can simply be added to the `languages` array:
-
-```ts
-languages: ["en", "fa", "de", "fr"]
-```
-
-Existing keywords can then receive an empty French translation:
-
-```ts
-{
-  id: "welcome",
-  translations: {
-    en: "Welcome",
-    fa: "خوش آمدید",
-    de: "Willkommen",
-    fr: ""
-  }
-}
-```
-
-The UI already renders translation fields dynamically based on the `languages` array, so no component-level changes would be required to display the new language.
-
-For a production application, I would move language management into a dedicated domain layer or API and migrate existing records when a new language is introduced. I would also validate the persisted dataset to ensure every keyword remains structurally consistent.
-
----
-
-## 2. If this needed to scale to thousands of keywords and many languages, what would you change? What would be the first bottleneck?
-
-The current implementation is intentionally optimized for the scope of the assignment rather than for very large datasets.
-
-With thousands of keywords and many languages, the first major bottleneck would likely be the amount of UI rendered at once.
-
-Currently, every keyword and its translation inputs are rendered in the DOM. With thousands of rows and many language columns, this would create a large number of React elements and input controls.
-
-The first change I would make would therefore be **virtualization**.
-
-Instead of rendering every keyword simultaneously, only the rows currently visible in the viewport would be rendered.
-
-For example:
-
-```text
-Thousands of keywords
-        ↓
-Virtualized list/table
-        ↓
-Only visible rows rendered
-```
-
-I would also consider the following changes:
-
-### 1. Virtualization
-
-Use a virtualization solution so only visible rows are mounted.
-
-This would significantly reduce:
-
-* DOM size
-* React rendering work
-* memory usage
-* scrolling overhead
-
-### 2. Normalize or index keyword data
-
-For a much larger application, I would consider separating ordering from keyword entities:
-
-```ts
-{
-  languages: ["en", "fa", "de"],
-  keywordOrder: ["welcome", "login", "settings"],
-  keywordsById: {
-    welcome: {
-      translations: {
-        en: "Welcome",
-        fa: "خوش آمدید"
-      }
-    }
-  }
-}
-```
-
-This can make individual keyword updates and lookups more efficient because they can be performed by ID rather than repeatedly scanning the entire array.
-
-### 3. Avoid persisting the entire dataset on every keystroke
-
-The current assignment explicitly requires persistence after every change, so the current implementation follows that requirement.
-
-For a production-scale application, continuously serializing a very large dataset into `localStorage` after every keystroke would become inefficient.
-
-I would consider:
-
-* debounced persistence
-* batching changes
-* IndexedDB
-* server-side persistence
-
-depending on the application requirements.
-
-### 4. Server-side persistence
-
-`localStorage` is not suitable as the primary data store for a multi-user production translation management system.
-
-A backend API and database would allow:
-
-* multiple users
-* authentication and authorization
-* concurrent editing
-* audit history
-* backups
-* larger datasets
-* centralized data management
-
-### 5. Memoization and component isolation
-
-For large datasets, I would ensure individual keyword rows do not re-render unnecessarily when unrelated keywords change.
-
-This could involve:
-
-* `React.memo`
-* stable callbacks
-* selector-based state access
-* more granular state subscriptions
-
----
-
-# Incomplete / Intentionally Not Implemented
-
-The core requirements of the assignment are implemented.
-
-The following optional features were intentionally not included:
-
-### Search / Filter
-
-Not implemented because it is explicitly listed as an optional feature in the assignment.
-
-For a larger dataset, search would become more important, especially when combined with virtualization.
-
-### Delete Keyword
-
-Not implemented because it is also optional.
-
-### Rename Keyword
-
-Not implemented.
-
-The current model treats the keyword ID as a stable identifier rather than an editable display field.
-
-### Import / Export JSON
-
-Not implemented.
-
-The current application only persists data through `localStorage`.
-
-### Automated Tests
-
-No automated test suite has been added.
-
-Given more time, I would add tests for the Context actions and the main user flows, particularly:
-
-* adding a keyword
-* editing a translation
-* reordering keywords
-* restoring persisted data
-* handling missing translations
-
----
-
-# Design Decisions
-
-## Why React Context?
-
-The application has a relatively small shared state model.
-
-React Context provides:
-
-* a single source of truth
-* simple state sharing between routes
-* no unnecessary external state-management dependency
-* a clear separation between state and presentation
-
-For this application's scope, a larger state-management library would add complexity without a clear benefit.
-
----
-
-## Why localStorage?
-
-The assignment explicitly requires local persistence.
-
-`localStorage` is appropriate for this scope because:
-
-* it is available directly in the browser
-* it persists across page reloads
-* it requires no backend
-* the dataset is small
-
-It would not be my choice for a production-scale collaborative translation system.
-
----
-
-## Why separate desktop and mobile layouts?
-
-The desktop experience benefits from a table because multiple languages can be compared horizontally.
-
-On smaller screens, a table with many language columns becomes difficult to use.
-
-Therefore:
-
-* Desktop → translation table
-* Mobile → stacked keyword cards
-
-Both layouts consume the exact same Context data and actions, so their behavior remains consistent.
-
----
-
-# Validation
-
-Before submitting the project, the following commands can be used to verify the application:
+Install dependencies:
 
 ```bash
-npx tsc --noEmit
+npm install
 ```
 
-and:
+Start the development server:
+
+```bash
+npm start
+```
+
+The application will be available through the local development server.
+
+## Production Build
+
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-Both should complete successfully before submission.
+Type-check the project:
 
----
+```bash
+npx tsc --noEmit
+```
 
-# Future Improvements
+## Routes
 
-If this project were continued beyond the assignment, the next improvements would be:
+### Dashboard
 
-1. Automated unit/component tests
-2. Search and filtering
-3. Import/export JSON
-4. Delete and rename functionality
-5. Strong runtime validation for persisted `localStorage` data
-6. Virtualized rendering for large datasets
-7. Backend/API persistence
-8. Authentication and permissions
-9. Translation history / audit log
-10. Optimistic updates and server synchronization
+```text
+/dashboard
+```
 
----
+Used for managing keywords, translations, searching, deleting, and reordering.
 
-# Summary
+### Public View
 
-This project focuses on keeping the architecture simple while maintaining a clear separation between state, business logic, and presentation.
+```text
+/public
+```
 
-The main design principle is:
+Used for viewing translations and switching between supported languages.
 
-> **One source of truth, predictable state updates, and reusable presentation components.**
+## Assumptions
 
-The Dashboard and Public View both consume the same translation state, while persistence and mutations are centralized in the React Context.
+* The assignment does not require a backend, so `localStorage` is used for persistence.
+* Language management itself is outside the requested scope; supported languages are defined in the dataset.
+* Authentication and authorization are outside the scope of this assignment.
+* The public view is read-only and uses the same shared dataset as the dashboard.
+* Translation identifiers are treated as unique.
 
-This keeps the implementation easy to understand for the current assignment while leaving clear paths for scaling the application later.
+## Incomplete / Out of Scope
+
+The following optional features were intentionally left out because they were not required for the core assignment:
+
+* Rename keyword
+* Import / Export JSON
+* Automated test suite
+* Backend/API persistence
+* Authentication and authorization
+
+These features could be added later without fundamentally changing the current architecture.
+
+## Written Answers
+
+### 1. Why did you choose this data structure, and how would you handle adding a new language?
+
+The data structure separates supported languages from keyword data.
+
+Each keyword contains an identifier and a `translations` object where language codes are used as keys.
+
+This provides direct access to a translation:
+
+```ts
+keyword.translations[language]
+```
+
+It also allows the UI to dynamically render translation fields based on the supported languages.
+
+Adding a new language would only require adding its language code to the `languages` array. The UI can then automatically generate the corresponding column and input fields.
+
+Existing keywords can simply contain an empty string until a translation is provided.
+
+### 2. How would you scale this to thousands of keywords and many languages? What would be the first bottleneck?
+
+The first bottleneck would likely be rendering and updating a large number of rows, followed by serializing the complete dataset to `localStorage` after every change.
+
+For thousands of keywords, I would consider server-side persistence, pagination or virtualization for the UI, and more granular state updates.
+
+I would also avoid storing and rewriting the entire dataset in `localStorage` for every keystroke. Persistence could instead be debounced or handled by a backend API.
+
+The current implementation keeps state management, business logic, and UI concerns separated, so these optimizations can be introduced without fundamentally changing the component structure.
