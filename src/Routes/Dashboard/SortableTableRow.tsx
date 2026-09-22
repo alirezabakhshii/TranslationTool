@@ -7,6 +7,7 @@ import DragHandleIcon from "../../Components/DragHandleIcon/DragHandleIcon";
 interface SortableTableRowProps {
   keyword: TranslationKeyword;
   languages: string[];
+  onDelete: (keywordId: string) => void;
   onTranslationChange: (
     keywordId: string,
     language: string,
@@ -18,6 +19,7 @@ export default function SortableTableRow({
   keyword,
   languages,
   onTranslationChange,
+  onDelete,
 }: SortableTableRowProps) {
   const {
     attributes,
@@ -58,6 +60,30 @@ export default function SortableTableRow({
           </button>
 
           <span className="font-medium text-slate-900">{keyword.id}</span>
+
+          <button
+            type="button"
+            onClick={() => onDelete(keyword.id)}
+            aria-label={`Delete ${keyword.id}`}
+            className="
+      flex
+      h-8
+      w-8
+      shrink-0
+      items-center
+      justify-center
+      rounded-md
+      text-slate-400
+      transition
+      hover:bg-red-50
+      hover:text-red-600
+      focus:outline-none
+      focus:ring-2
+      focus:ring-red-200
+    "
+          >
+            <TrashIcon />
+          </button>
         </div>
       </td>
 
@@ -75,5 +101,27 @@ export default function SortableTableRow({
         </td>
       ))}
     </tr>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </svg>
   );
 }

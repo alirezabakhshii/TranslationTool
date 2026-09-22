@@ -9,6 +9,7 @@ import DragHandleIcon from "../../Components/DragHandleIcon/DragHandleIcon";
 interface SortableMobileCardProps {
   keyword: TranslationKeyword;
   languages: string[];
+  onDelete: (keywordId: string) => void;
   onTranslationChange: (
     keywordId: string,
     language: string,
@@ -20,6 +21,7 @@ export default function SortableMobileCard({
   keyword,
   languages,
   onTranslationChange,
+  onDelete,
 }: SortableMobileCardProps) {
   const {
     attributes,
@@ -76,6 +78,30 @@ export default function SortableMobileCard({
         <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
           {keyword.id}
         </span>
+
+        <button
+          type="button"
+          onClick={() => onDelete(keyword.id)}
+          aria-label={`Delete ${keyword.id}`}
+          className="
+    flex
+    h-9
+    w-9
+    shrink-0
+    items-center
+    justify-center
+    rounded-lg
+    text-slate-400
+    transition
+    hover:bg-red-50
+    hover:text-red-600
+    focus:outline-none
+    focus:ring-2
+    focus:ring-red-200
+  "
+        >
+          <TrashIcon />
+        </button>
       </div>
 
       {/* Translations */}
@@ -115,5 +141,27 @@ export default function SortableMobileCard({
         ))}
       </div>
     </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </svg>
   );
 }

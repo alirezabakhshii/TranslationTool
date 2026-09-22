@@ -21,10 +21,9 @@ interface TranslationContextValue {
     language: string,
     value: string,
   ) => void;
-
   addKeyword: (keywordId: string, translations: Record<string, string>) => void;
-
   reorderKeywords: (sourceId: string, targetId: string) => void;
+  deleteKeyword: (keywordId: string) => void;
 }
 
 const TranslationContext = createContext<TranslationContextValue | undefined>(
@@ -124,6 +123,15 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     });
   }
 
+  function deleteKeyword(keywordId: string) {
+    setData((currentData) => ({
+      ...currentData,
+      keywords: currentData.keywords.filter(
+        (keyword) => keyword.id !== keywordId,
+      ),
+    }));
+  }
+
   return (
     <TranslationContext.Provider
       value={{
@@ -131,6 +139,7 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
         updateTranslation,
         addKeyword,
         reorderKeywords,
+        deleteKeyword,
       }}
     >
       {children}

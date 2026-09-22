@@ -83,8 +83,8 @@ src/
 ├── context/
 │   └── TranslationContext.tsx
 │
-├── data/
-│   └── initialData.ts
+├── Translations/
+│   └── initialTranslations.ts
 │
 ├── pages/
 │   ├── Dashboard/
